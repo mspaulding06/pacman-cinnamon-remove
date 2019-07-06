@@ -1,0 +1,32 @@
+#!/usr/bin/python2
+
+import subprocess
+import sys
+
+import gi
+gi.require_version('Gtk', '3.0')
+from gi.repository import Gtk
+
+class Package:
+    def __init__(self, desktop_file):
+        self.desktop_file = desktop_file
+        self.package_name = self._find_package()
+
+    def remove(self):
+        subprocess.check_call(['pamac-installer', '--remove', self.package_name])
+
+    def _find_package(self):
+        output = subprocess.check_output(['pacman', '-Fo', self.desktop_file, '--machinereadable'])
+        sanitized = output.decode('utf-8').strip()
+        if len(sanitized) < 1:
+            dialog = Gtk.MessageDialog(None, 0, Gtk.MessageType.WARNING, Gtk.ButtonsType.OK,
+                        "Cannot find package for:\n{}".format(self.desktop_file))
+            dialog.run()
+        fields = sanitized.split('\x00')
+        return fields[1]
+
+
+if __name__ == "__main__":
+    if len(sys.argv) > 1:
+        pkg = Package(sys.argv[1])
+        pkg.remove()
